@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import styles from './home.module.css';
-import { useEffect, useState, useCallback, useMemo } from 'react'; // Added useMemo
+import { useEffect, useState } from 'react';
 import { useUser } from '@/app/context/UserContext';
 
 interface Project {
@@ -22,8 +22,29 @@ interface QAItem {
   isNew?: boolean;
 }
 
+const predefinedProjects: Project[] = [
+  {
+    id: 'pre-1',
+    title: "AI-Powered Personalized Learning Platform",
+    description: "Develop an AI platform that adapts to individual learning styles.",
+    category: "Technology"
+  },
+  {
+    id: 'pre-2',
+    title: "Sustainable Energy Solutions for Urban Areas",
+    description: "Design sustainable energy solutions for urban environments.",
+    category: "Environmental Science"
+  },
+  {
+    id: 'pre-3',
+    title: "Innovative Healthcare Technologies",
+    description: "Create innovative healthcare technologies to improve patient care.",
+    category: "Healthcare"
+  }
+];
+
 export default function Home() {
-  const { user, loading: authLoading } = useUser();
+  const { user, loading: authLoading } = useUser(); // Using 'loading' from context
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [userProjects, setUserProjects] = useState<Project[]>([]);
@@ -46,44 +67,6 @@ export default function Home() {
   const [newQuestion, setNewQuestion] = useState('');
   const [isAsking, setIsAsking] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-
-  // Memoize predefinedProjects to prevent recreation on every render
-  const predefinedProjects = useMemo(() => [
-    {
-      id: 'pre-1',
-      title: "AI-Powered Personalized Learning Platform",
-      description: "Develop an AI platform that adapts to individual learning styles.",
-      category: "Technology"
-    },
-    {
-      id: 'pre-2',
-      title: "Sustainable Energy Solutions for Urban Areas",
-      description: "Design sustainable energy solutions for urban environments.",
-      category: "Environmental Science"
-    },
-    {
-      id: 'pre-3',
-      title: "Innovative Healthcare Technologies",
-      description: "Create innovative healthcare technologies to improve patient care.",
-      category: "Healthcare"
-    }
-  ], []);
-
-  // Memoized filter function
-  const filterProjects = useCallback(() => {
-    const allProjects = [...predefinedProjects, ...userProjects];
-    
-    if (searchTerm.trim() === '') {
-      setFilteredProjects(allProjects);
-    } else {
-      const filtered = allProjects.filter(project =>
-        project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.category.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredProjects(filtered);
-    }
-  }, [searchTerm, userProjects, predefinedProjects]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -126,8 +109,19 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    filterProjects();
-  }, [filterProjects]); // Now using the memoized function
+    const allProjects = [...predefinedProjects, ...userProjects];
+    
+    if (searchTerm.trim() === '') {
+      setFilteredProjects(allProjects);
+    } else {
+      const filtered = allProjects.filter(project =>
+        project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        project.category.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredProjects(filtered);
+    }
+  }, [searchTerm, userProjects]);
 
   const handleAskQuestion = () => {
     if (!newQuestion.trim()) return;

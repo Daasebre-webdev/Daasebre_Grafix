@@ -1,10 +1,9 @@
-
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image' // Added Next.js Image component
+import Image from 'next/image' // Added Image import
 import { useUser } from '../context/UserContext'
-import styles from './chat.module.css'
+
 
 interface Message {
   id: string;
@@ -20,7 +19,7 @@ interface ChatHistoryItem {
 }
 
 export default function Chat() {
-  const { user } = useUser() // Removed unused 'loading' destructuring
+  const { user } = useUser() // Removed unused loading variable
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [isPaused, setIsPaused] = useState(false)
@@ -251,7 +250,7 @@ export default function Chat() {
                 alt="User profile"
                 width={40}
                 height={40}
-                className={styles["user-avatar"]}
+                className="w-full h-full object-cover"
               />
             )}
           </div>
@@ -371,21 +370,20 @@ export default function Chat() {
               </div>
               
               <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-medium overflow-hidden">
-            {user && (
-              <Image 
-                src={
-                  user.picture.startsWith('http')
-                    ? user.picture
-                    : `http://localhost/Google_signup/${user.picture}`
-                }
-                alt="User profile"
-                width={32}
-                height={32}
-                className="w-full h-full object-cover"
-              />
-            )}
-          </div>
-        
+                {user && (
+                  <Image 
+                    src={
+                      user.picture.startsWith('http')
+                        ? user.picture
+                        : `http://localhost/Google_signup/${user.picture}`
+                    }
+                    alt="User profile"
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-cover"
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>

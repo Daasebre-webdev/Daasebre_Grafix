@@ -13,9 +13,7 @@ const MODEL_PRIORITY_LIST = [
   "gemini-1.5-flash", // Fastest
   "gemini-1.5-pro",   // More capable
   "gemini-pro"        // Basic
-] as const;
-
-type ModelName = typeof MODEL_PRIORITY_LIST[number];
+];
 
 // Type definition for cache entries
 type ModelStatus = {
@@ -24,79 +22,7 @@ type ModelStatus = {
 };
 
 // Cache for model availability
-const modelStatusCache = new Map<ModelName, ModelStatus>();
-
-// Type definitions for request and response
-type ChatHistoryItem = {
-  role: "user" | "model";
-  parts: { text: string }[];
-};
-
-type ChatRequest = {
-  message: string;
-  history?: ChatHistoryItem[];
-};
-
-type ChatResponse = {
-  text: string;
-  modelUsed: ModelName;
-};
-
-type ErrorResponse = {
-  error: string;
-  suggestion?: string;
-};
-
-type GeminiAPIError = Error & {
-  response?: {
-    status?: number;
-    data?: {
-      error?: string;
-    };
-  };
-};
-
-type ErrorType = 
-  | 'QUOTA_EXCEEDED'
-  | 'MODEL_UNAVAILABLE'
-  | 'SAFETY_BLOCKED'
-  | 'GENERIC_ERROR';
-
-type ErrorHandler = {
-  type: ErrorType;
-  test: (error: GeminiAPIError) => boolean;
-  message: string;
-  status: number;
-};
-
-const errorHandlers: ErrorHandler[] = [
-  {
-    type: 'QUOTA_EXCEEDED',
-    test: (error) => error.message.includes("quota"),
-    message: "API quota exceeded. Please try again later.",
-    status: 429
-  },
-  {
-    type: 'MODEL_UNAVAILABLE',
-    test: (error) => 
-      error.message.includes("model") || 
-      error.message.includes("unavailable"),
-    message: "Model service unavailable. Please try again.",
-    status: 503
-  },
-  {
-    type: 'SAFETY_BLOCKED',
-    test: (error) => error.message.includes("safety"),
-    message: "Content blocked for safety reasons.",
-    status: 400
-  },
-  {
-    type: 'GENERIC_ERROR',
-    test: () => true,
-    message: "Failed to process request",
-    status: 500
-  }
-];
+const modelStatusCache = new Map<string, ModelStatus>();
 
 export async function POST(request: Request) {
   try {
@@ -111,7 +37,7 @@ export async function POST(request: Request) {
     }
     lastRequestTime = Date.now();
 
-    const { message, history = [] } = await request.json() as ChatRequest;
+    const { message, history = [] } = await request.json();
 
     // Try models in priority order
     for (const modelName of MODEL_PRIORITY_LIST) {
@@ -124,18 +50,15 @@ export async function POST(request: Request) {
 
         const model = genAI.getGenerativeModel({ model: modelName });
 
-        // Convert history to the correct format
-        const formattedHistory = history.map(({ role, parts }) => ({
-          role,
-          parts
-        }));
-
         // Build conversation history
         const chat = model.startChat({
-          history: formattedHistory,
+          history: [
+            ...history,
+            // You could add system instructions here if needed
+          ],
           generationConfig: {
-            maxOutputTokens: 2000,
-            temperature: 0.9,
+            maxOutputTokens: 2000, // Adjust as needed
+            temperature: 0.9, // Adjust for creativity
           },
         });
 
@@ -143,23 +66,23 @@ export async function POST(request: Request) {
         const response = await result.response;
         const text = response.text();
 
-        // Update cache on success
+        // Update cache on success - ensure both properties are properly set
         modelStatusCache.set(modelName, { 
           lastAvailable: Date.now(),
-          lastError: undefined
+          lastError: undefined // Clear any previous errors
         });
         
         return NextResponse.json({ 
           text,
           modelUsed: modelName 
-        } satisfies ChatResponse);
+        });
 
-      } catch (error: unknown) {
+      } catch (error) {
         console.warn(`Model ${modelName} failed:`, error);
         const cacheEntry = modelStatusCache.get(modelName) || { lastAvailable: 0 };
         modelStatusCache.set(modelName, { 
-          lastAvailable: cacheEntry.lastAvailable,
-          lastError: Date.now()
+          lastAvailable: cacheEntry.lastAvailable, // Preserve existing
+          lastError: Date.now() // Set new error time
         });
       }
     }
@@ -169,17 +92,31 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     console.error("Chat Error:", error);
     
-    const defaultHandler = errorHandlers.find(h => h.type === 'GENERIC_ERROR')!;
-    const handler = error instanceof Error 
-      ? errorHandlers.find(h => h.test(error as GeminiAPIError)) ?? defaultHandler
-      : defaultHandler;
+    // Enhanced error handling
+    let errorMessage = "Failed to process request";
+    let statusCode = 500;
+
+    if (error instanceof Error) {
+      if (error.message.includes("quota")) {
+        errorMessage = "API quota exceeded. Please try again later.";
+        statusCode = 429;
+      } else if (error.message.includes("model") || error.message.includes("unavailable")) {
+        errorMessage = "Model service unavailable. Please try again.";
+        statusCode = 503;
+      } else if (error.message.includes("safety")) {
+        errorMessage = "Content blocked for safety reasons.";
+        statusCode = 400;
+      } else {
+        errorMessage = error.message;
+      }
+    }
 
     return NextResponse.json(
       { 
-        error: handler.message,
+        error: errorMessage,
         suggestion: "Try again in a few minutes or contact support if the issue persists"
-      } satisfies ErrorResponse,
-      { status: handler.status }
+      },
+      { status: statusCode }
     );
   }
 }

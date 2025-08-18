@@ -1,45 +1,55 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { getAllProjects, type Project } from '@/app/utils/helpers';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import styles from './projectspage.module.css';
 
-interface ResourceTool { name: string; link: string; }
-interface ResourceGuide { title: string; link: string; }
-
-interface ProjectDetails {
-  fullDescription?: string;
-  difficulty?: string;
-  duration?: string;
-  learningObjectives?: string[];
-  steps?: { title: string; items: string[] }[];
-  resources?: { tools?: ResourceTool[]; guides?: ResourceGuide[] };
+// Define types for resources
+interface ResourceItem {
+  name: string;
+  link: string;
 }
 
-interface CompleteProject extends Project {
-  details?: ProjectDetails;
+interface GuideItem {
+  title: string;
+  link: string;
 }
 
-// Strongly typed params for Next.js dynamic route
-interface ProjectPageProps {
-  params: {
-    id: string;
+interface ProjectResources {
+  tools?: ResourceItem[];
+  guides?: GuideItem[];
+}
+
+// Augment the Project type to include detailed resources
+interface DetailedProject extends Project {
+  details?: {
+    fullDescription?: string;
+    difficulty?: string;
+    duration?: string;
+    learningObjectives?: string[];
+    steps?: {
+      title: string;
+      items: string[];
+    }[];
+    resources?: ProjectResources;
   };
 }
 
-export default function ProjectPage({ params }: ProjectPageProps) {
-  const { id } = params;
+export default function ProjectPage() {
+  const params = useParams();
+  const id = params?.id as string;
   const router = useRouter();
-  const [project, setProject] = useState<CompleteProject | null>(null);
+
+  const [project, setProject] = useState<DetailedProject | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const { isBookmarked, toggleBookmark, isLoading: bookmarksLoading } = useBookmarks();
 
   useEffect(() => {
     setIsMounted(true);
     const allProjects = getAllProjects();
-    const foundProject = allProjects.find((p) => p.id === id);
+    const foundProject = allProjects.find((p) => p.id === id) as DetailedProject | undefined;
 
     if (!foundProject) {
       router.push('/404');
@@ -49,7 +59,9 @@ export default function ProjectPage({ params }: ProjectPageProps) {
     setProject(foundProject);
   }, [id, router]);
 
-  const handleBookmarkToggle = () => toggleBookmark(id);
+  const handleBookmarkToggle = () => {
+    toggleBookmark(id);
+  };
 
   if (!isMounted) return <div className={styles.loading}>Loading...</div>;
   if (!project) return <div className={styles.loading}>Project not found</div>;
@@ -68,13 +80,15 @@ export default function ProjectPage({ params }: ProjectPageProps) {
         <button
           onClick={handleBookmarkToggle}
           disabled={bookmarksLoading}
-          className={`${styles.bookmarkButton} ${isBookmarked(id) ? styles.bookmarked : ''}`}
+          className={`${styles.bookmarkButton} ${
+            isBookmarked(id) ? styles.bookmarked : ''
+          }`}
         >
-          {bookmarksLoading
-            ? '...'
-            : isBookmarked(id)
-            ? 'Bookmarked ✓'
-            : 'Bookmark this Project'}
+          {bookmarksLoading 
+            ? '...' 
+            : isBookmarked(id) 
+              ? 'Bookmarked ✓' 
+              : 'Bookmark this Project'}
         </button>
       </div>
 
@@ -104,8 +118,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
               <div className={styles.stepCard}>
                 <h3 className={styles.stepTitle}>Learning Objectives</h3>
                 <ul className={styles.stepItems}>
-                  {project.details.learningObjectives.map((obj, idx) => (
-                    <li key={idx} className={styles.stepItem}>
+                  {project.details.learningObjectives.map((obj, index) => (
+                    <li key={index} className={styles.stepItem}>
                       <span className={styles.itemBullet}>•</span> {obj}
                     </li>
                   ))}
@@ -116,8 +130,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
               <div className={styles.stepCard}>
                 <h3 className={styles.stepTitle}>Steps</h3>
                 <ul className={styles.stepItems}>
-                  {project.details.steps.map((step, idx) => (
-                    <li key={idx} className={styles.stepItem}>
+                  {project.details.steps.map((step, index) => (
+                    <li key={index} className={styles.stepItem}>
                       <strong>{step.title}</strong>
                       <ul>
                         {step.items.map((item, i) => (
@@ -138,8 +152,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                   <>
                     <h4>Tools</h4>
                     <ul className={styles.stepItems}>
-                      {project.details.resources.tools.map((tool, idx) => (
-                        <li key={idx} className={styles.stepItem}>
+                      {project.details.resources.tools.map((tool, index) => (
+                        <li key={index} className={styles.stepItem}>
                           <a href={tool.link} target="_blank" rel="noopener noreferrer">
                             {tool.name}
                           </a>
@@ -152,8 +166,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                   <>
                     <h4>Guides</h4>
                     <ul className={styles.stepItems}>
-                      {project.details.resources.guides.map((guide, idx) => (
-                        <li key={idx} className={styles.stepItem}>
+                      {project.details.resources.guides.map((guide, index) => (
+                        <li key={index} className={styles.stepItem}>
                           <a href={guide.link} target="_blank" rel="noopener noreferrer">
                             {guide.title}
                           </a>

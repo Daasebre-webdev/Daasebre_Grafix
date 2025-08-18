@@ -5,7 +5,7 @@ import styles from './ai.module.css'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useUser } from '../context/UserContext'
-import Image from 'next/image' // Replaced img with Next.js Image component
+import Image from 'next/image'
 
 interface FormData {
   field: string
@@ -37,7 +37,7 @@ export default function AIGenerator() {
     technologies: ''
   })
 
-  // Removed unused generatedProjects state since we're saving directly to localStorage
+  const [, setGeneratedProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -53,10 +53,8 @@ export default function AIGenerator() {
   }
 
   const saveGeneratedProjects = (projects: Project[]) => {
-    // Save for immediate use
     localStorage.setItem('generatedProjects', JSON.stringify(projects))
     
-    // Save to shared user projects list
     const existingUserProjects = JSON.parse(localStorage.getItem('userProjects') || '[]')
     
     const newUserProjects = projects.map(project => ({
@@ -105,6 +103,7 @@ export default function AIGenerator() {
         return
       }
 
+      setGeneratedProjects(parsedProjects)
       saveGeneratedProjects(parsedProjects)
       router.push('/results')
     } catch (err) {
@@ -131,9 +130,8 @@ export default function AIGenerator() {
             }
             alt="User profile"
             className={styles["user-avatar"]}
-            width={80}
-            height={80}
-            priority
+            width={40}
+            height={40}
           />
           <div>
             <p><strong>{user.name}</strong></p>
@@ -141,6 +139,7 @@ export default function AIGenerator() {
           </div>
         </div>
       )}
+
 
       <div className={styles["header"]}>
         <h1 className={styles["main-title"]}>Generate Your Own Project</h1>

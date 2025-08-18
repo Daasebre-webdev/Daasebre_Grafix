@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image'; // Added Next.js Image component
+import Image from 'next/image'; // Added Image import
 import projects from '../data/projects.json';
 import styles from './bookmarks.module.css';
 import { useUser } from '../context/UserContext';
@@ -104,9 +104,9 @@ export default function Bookmarks() {
             }
             alt="User profile"
             className={styles["user-avatar"]}
-            width={80} // Added width
-            height={80} // Added height
-            priority // Added for above-the-fold images
+            width={40} // Added width
+            height={40} // Added height
+            priority // Optional: if this image is important for LCP
           />
           <div>
             <p><strong>{user.name}</strong></p>
